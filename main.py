@@ -1,20 +1,18 @@
 from flask import Flask, render_template, redirect, url_for, request
 from flask_bootstrap import Bootstrap5
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired
 import requests
-import mysql.connector
+from sql_connection import get_sql_connection
 import os
+from forms import RateMovieForm
 
-connection = mysql.connector.connect(user='root',
-                                     host='localhost',
-                                     port="3306")
-
+# Connect to database
+connection = get_sql_connection()
 my_cursor = connection.cursor()
 
+
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+app.config['SECRET_KEY'] = "any-string-you-want-just-keep-it-secret"
 Bootstrap5(app)
 
 # CREATE DB
@@ -59,8 +57,7 @@ def insert_new_movie(connection, movie):
 
 
 # Retrieve all movies from database
-def get_all_movies():
-    my_cursor = connection.cursor()
+def get_all_movies(connection):
     query = ("SELECT id, title, year, description, rating, ranking, review, img_url FROM Movie")
     my_cursor.execute(query)
     response = []
@@ -77,17 +74,38 @@ def get_all_movies():
                          "img_url": img_url})
     return response
 
-data_movie = get_all_movies()
+data_movie = get_all_movies(connection)
 
-
+# Display all movie from database
 @app.route("/")
 def home():
     return render_template("index.html", data_movie=data_movie)
 
 
-# Close the connection
-my_cursor.close()
-connection.close()
+# Update Rating, Review Movie
+@app.route("/edit/<int:id>", methods=["GET", "POST"])
+def edit_button(id):
+    form = RateMovieForm()
+    # Display the title Movie
+    query = "SELECT title FROM Movie WHERE id = %s"
+    my_cursor.execute(query, (id,))
+    movie = my_cursor.fetchone()
+    title = movie[0]
+    if form.validate_on_submit():
+        rating = form.rating.data
+        review = form.review.data
+        update_query = "UPDATE Movie SET rating=%s, review=%s WHERE id=%s"
+        my_cursor.execute(update_query, (rating, review, id))
+        connection.commit()
+    return render_template("edit.html", form=form, title=title)
+
+
+
+
+# # Close the connection
+# my_cursor.close()
+# connection.close()
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=4005)
