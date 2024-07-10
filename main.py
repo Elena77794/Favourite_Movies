@@ -54,7 +54,7 @@ def insert_new_movie(connection, movie):
 #                               "ranking": 10,
 #                               "review": "My favourite character was the caller.",
 #                               "img_url": "https://image.tmdb.org/t/p/w500/tjrX2oWRCM3Tvarz38zlZM7Uc10.jpg" })
-
+#
 
 # Retrieve all movies from database
 def get_all_movies(connection):
@@ -74,12 +74,7 @@ def get_all_movies(connection):
                          "img_url": img_url})
     return response
 
-data_movie = get_all_movies(connection)
 
-# Display all movie from database
-@app.route("/")
-def home():
-    return render_template("index.html", data_movie=data_movie)
 
 
 # Update Rating, Review Movie
@@ -99,6 +94,22 @@ def edit_button(id):
         connection.commit()
     return render_template("edit.html", form=form, title=title)
 
+
+
+@app.route("/delete/<int:id>", methods=["GET", "POST"])
+def delete_movie(id):
+    query = "DELETE FROM Movie WHERE id = %s"
+    my_cursor.execute(query, (id,))
+    connection.commit()
+    return redirect((url_for("home")))
+
+
+
+# Display all movie from database
+@app.route("/")
+def home():
+    data_movie = get_all_movies(connection)
+    return render_template("index.html", data_movie=data_movie)
 
 
 

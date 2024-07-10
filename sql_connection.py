@@ -13,4 +13,3 @@ def get_sql_connection():
 
 
 
-   # create forms annd sql_connecttion files. Make responsive button "Update" and Update rows: Review, Rating in Database
