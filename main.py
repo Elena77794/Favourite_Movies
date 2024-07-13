@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from flask import Flask, render_template, redirect, url_for, request
 from flask_bootstrap import Bootstrap5
 import requests
@@ -7,23 +6,27 @@ from sql_connection import get_sql_connection
 import os
 from forms import RateMovieForm, AddMovie
 
+
+
 # Connect to database
 connection = get_sql_connection()
 my_cursor = connection.cursor()
 
-KEY_DATABASE_MOVIE = os.getenv('KEY_DATABASE_MOVIE')
+KEY_DATABASE_MOVIE = os.getenv(KEY_DATABASE_MOVIE)
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "any-string-you-want-just-keep-it-secret"
 Bootstrap5(app)
 
-# CREATE DB
+
+# Create database
 # my_cursor.execute("CREATE DATABASE IF NOT EXISTS Top_Movie_Web")
 
-# Select the Database
+# Select the database
 my_cursor.execute("USE Top_Movie_Web")
 
-# CREATE TABLE
+# Create table in Database
 # my_cursor.execute("CREATE Table IF NOT EXISTS Movie(id INT NOT NULL AUTO_INCREMENT, "
 #                   "title VARCHAR(100) NOT NULL UNIQUE,"
 #                   "year YEAR NOT NULL,"
@@ -35,7 +38,7 @@ my_cursor.execute("USE Top_Movie_Web")
 #                   "PRIMARY KEY (id))")
 
 
-# Insert New Movie
+# Insert new movie in your database
 def insert_new_movie(connection, movie):
     my_cursor = connection.cursor()
     query = ("INSERT INTO Movie (title, year, description, img_url)"
@@ -46,6 +49,7 @@ def insert_new_movie(connection, movie):
     my_cursor.execute(query, data)
     connection.commit()
     return my_cursor.lastrowid
+
 
 
 # insert_new_movie(connection, {"movie_name": "Phone Booth",
@@ -78,7 +82,7 @@ def get_all_movies(connection):
 
 
 
-# Update Rating, Review Movie
+# Update rating and review movie in database
 @app.route("/edit/<int:id>", methods=["GET", "POST"])
 def edit_button(id):
     form = RateMovieForm()
@@ -96,7 +100,7 @@ def edit_button(id):
     return render_template("edit.html", form=form, title=title)
 
 
-
+# Delete unwanted movie from your database
 @app.route("/delete/<int:id>", methods=["GET", "POST"])
 def delete_movie(id):
     query = "DELETE FROM Movie WHERE id = %s"
@@ -106,42 +110,45 @@ def delete_movie(id):
 
 
 
-# Display all movie from database
+# Display all movies from database on index.html
 @app.route("/")
 def home():
     data_movie = get_all_movies(connection)
     return render_template("index.html", data_movie=data_movie)
 
-# Add Movie to Database
+
+# Fetch movie data from the API by title and display all results on select.html
 @app.route("/add", methods=["GET", "POST"])
 def add_movie():
     form = AddMovie()
     if form.validate_on_submit():
         movie_title = form.movie_title.data
         url = "https://api.themoviedb.org/3/search/movie?include language=en-US&"
-        headers = {
+        headers ={
             "accept": "application/json",
             "Authorization": f"Bearer {KEY_DATABASE_MOVIE}"
-        }
+            }
         # Make request
         response = requests.get(url, params={"query": movie_title}, headers=headers)
         data = response.json()
         movies = data["results"]
+        # Render the results on select.html
         return render_template("select.html", movies=movies)
     return render_template("add.html", form=form)
 
 
-@app.route("/select/<int:movie_id>", methods=["GET", "POST"])
-def select_movie(movie_id):
 
+# Select movie by id on select.html and insert in database
+@app.route("/select/<int:movie_id>", methods=["GET", "POST"])
+
+def select_movie(movie_id):
         url = f"https://api.themoviedb.org/3/movie/{movie_id}"
         headers = {
             "accept": "application/json",
             "Authorization": f"Bearer {KEY_DATABASE_MOVIE}"
-
         }
 
-        # Make request and receive the data
+        # Make request and receive the data of img_url, title, description and release date
         response = requests.get(url, params={"movie_id": movie_id, "language": "en-US"}, headers=headers)
         data = response.json()
         title = data['title']
@@ -152,7 +159,7 @@ def select_movie(movie_id):
         date_string = data['release_date']
         year = date_string.split('-')[0]
 
-        # Insert the data into MovieDatabase
+        # Insert the data in database
         insert_movie = insert_new_movie(connection, {"movie_name": title,
                                       'year': year,
                                       "description": description,
@@ -161,12 +168,13 @@ def select_movie(movie_id):
             query = f"SELECT id FROM Movie WHERE title = %s"
             my_cursor.execute(query, (title,))
             movie_id = my_cursor.fetchone()[0]
+
         return redirect(url_for('edit_button', id=movie_id))
 
 
 # # Close the connection
-# my_cursor.close()
-# connection.close()
+my_cursor.close()
+connection.close()
 
 
 if __name__ == '__main__':
