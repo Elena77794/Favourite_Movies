@@ -63,21 +63,25 @@ def insert_new_movie(connection, movie):
 
 # Retrieve all movies from database
 def get_all_movies(connection):
-    query = ("SELECT id, title, year, description, rating, ranking, review, img_url FROM Movie")
+    query = ("SELECT id, title, year, description, rating, ranking, review, img_url FROM Movie ORDER BY rating DESC")
     my_cursor.execute(query)
     response = []
+    rating_list = []
     for id, title, year, description, rating, ranking, review, img_url in my_cursor:
+        rating_list.append(rating)
         if isinstance(img_url, bytes):
             img_url = img_url.decode('utf-8')
         response.append({"id": id,
-                         "title": title,
-                         "year": year,
-                         "description": description,
-                         "rating": rating,
-                         "ranking": ranking,
-                         "review": review,
-                         "img_url": img_url})
+                            "title": title,
+                            "year": year,
+                            "description": description,
+                            "rating": rating,
+                            "ranking": len(rating_list),
+                            "review": review,
+                            "img_url": img_url})
     return response
+
+
 
 
 
@@ -173,8 +177,8 @@ def select_movie(movie_id):
 
 
 # # Close the connection
-my_cursor.close()
-connection.close()
+# my_cursor.close()
+# connection.close()
 
 
 if __name__ == '__main__':

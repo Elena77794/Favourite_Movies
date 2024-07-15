@@ -14,3 +14,4 @@ class AddMovie(FlaskForm):
     add = SubmitField("Add Movie")
 
 
+
